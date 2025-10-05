@@ -1,0 +1,22 @@
+﻿@page "/test"
+@using ExifParser.APIs
+@using ExifParser.APIs.Shutterstock
+@rendermode InteractiveServer
+
+<PageTitle>Test</PageTitle>
+
+<h3>Test</h3>
+
+<button class="btn btn-primary" @onclick="RequestAuthTokens">Request OAuth Token</button>
+
+@code {
+    private async Task RequestAuthTokens()
+    {
+        // Simulate an async operation to request OAuth tokens
+
+        IApiRequest request = new ShutterstockApiRequest("/images/search");
+        request.AddParameter("query", "kite");
+        Console.WriteLine(request.ExecuteRequest());
+
+    }
+}
