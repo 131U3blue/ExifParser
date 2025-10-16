@@ -1,0 +1,157 @@
+﻿@page "/imageSearch"
+@inject ApiCredentialService CredentialService;
+@inject PageTitleService TitleService;
+@using ExifParser.APIs
+@using ExifParser.APIs.Shutterstock
+@using ExifParser.APIs.Unsplash
+@using ExifParser.Components.Layout
+@using ExifParser.Components.Pages.Modals
+@using ExifParser.Images
+@using ExifParser.Services
+@using System.Text.Json
+@using System.Text
+@using static ExifParser.APIs.ApiUtilities
+@rendermode InteractiveServer
+
+<PageTitle>Image Search</PageTitle>
+<SectionContent SectionName="page-title">Image Search</SectionContent>
+
+<div id="subtitle" style="width: 100%; display: grid; padding: 20px">
+    <h2 style="width: 100%; text-align:center">Search For Images Below</h2>
+</div>
+@* <label>Search Term:</label> *@
+<div style="height:5vh;">
+    <div class="search-bar-container">
+        <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"></path>
+            </svg>
+        </span>
+        <InputText id="txtQuery" class="search-bar-textbox" @bind-Value="txtQuery" @onkeyup="(KeyboardEventArgs e) => EnterPressed(e)" placeholder="Search here"/>
+
+        @* <button class="btn image-modal-button-negative" @onclick="RequestImages" style="margin-left: 10px">Search</button> *@
+    </div>
+
+    <h2 id="txtErrorMessage" style="color:red">@txtErrorMessage</h2>
+</div>
+
+<div style="padding: 20px">
+    <ExifParser.Components.Pages.Modals.ImageModal @ref="ImageModal"></ExifParser.Components.Pages.Modals.ImageModal>
+</div>
+
+@if(_responses is not null)
+{
+    <div id="gallery" class="gallery">
+
+        @foreach (var image in _images)
+        {
+            <div class="gallery-item">
+                <a @onclick="() => LoadImage(image)" style="cursor: pointer" >
+                    <img src="@image.Url" alt="@image.Description" width="@image.Width" height="@image.Height">
+                </a>
+                <div class="desc">@image.ApiSource.ToString()</div>
+            </div>
+
+        }
+    </div>
+}
+
+
+@code {
+    private List<ApiCredentials>? _credentials;
+    private string txtQuery = string.Empty;
+    private string txtErrorMessage = string.Empty;
+    private List<IImageResponse> _responses;
+    private List<IImage> _images;
+    private ImageModal ImageModal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _credentials = await CredentialService.LoadApiCredentialsFromJsonAsync();
+        TitleService.Title = "Image Search";
+    }
+
+    private async Task RequestImages()
+    {
+        _responses?.Clear();
+        _images?.Clear();
+
+
+        List<IApiRequest> requests = CreateImageSearchRequests();
+
+        var allResponses = await Task.WhenAll(requests.Select(request => request.ExecuteAndDeserialise()));
+
+        foreach (IImageResponse response in allResponses)
+        {
+            try
+            {
+                if (_responses is null)
+                    _responses = new();
+
+                if (_images is null)
+                    _images = new();
+
+                _images.AddRange(response.Images);
+            }
+            catch (Exception ex)
+            {
+                txtErrorMessage += ex.Message;
+                continue;
+            }
+        }
+    }
+
+    private async Task EnterPressed(KeyboardEventArgs e)
+    {
+        if(e.Key == "Enter")
+            await RequestImages();
+    }
+
+    private async void LoadImage(IImage image)
+    {
+        //Open modal passing in IImage to display basic image data
+        ImageModal.Show(image);
+
+
+        // var imageDetails = await LoadUnsplashData<UnsplashImage>($"/photos/{image.Id}");
+    }
+
+    /// <summary>
+    /// Creates API requests to all applicable image hosting sites
+    /// </summary>
+    /// <returns>A List of ApiRequestWrapper containing the appropriate API Response</returns>
+    private List<IApiRequest> CreateImageSearchRequests()
+    {
+        var shutterstockRequest = new ShutterstockApiRequest<ShutterstockResponse>(CredentialService, "/images/search");
+        var unsplashRequest = new UnsplashRequest<UnsplashResponse>(CredentialService, "/search/photos");
+
+        shutterstockRequest.AddParameter("query", txtQuery);
+        unsplashRequest.AddParameter("query", txtQuery);
+
+        return new List<IApiRequest> 
+        { 
+            new ApiRequestWrapper<ShutterstockResponse>(shutterstockRequest), 
+            new ApiRequestWrapper<UnsplashResponse>(unsplashRequest)
+        };
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="TResponse"></typeparam>
+    /// <param name="endpoint"></param>
+    /// <param name="parameters"></param>
+    /// <returns></returns>
+    private async Task<TResponse> LoadUnsplashData<TResponse>(string endpoint, Dictionary<string, string>? parameters = null)
+    {
+        var request = new UnsplashRequest<TResponse>(CredentialService, endpoint);
+
+        if (parameters is not null)
+            foreach (var kv in parameters)
+                request.AddParameter(kv.Key, kv.Value);
+
+        var wrapper = new ApiRequestWrapper<TResponse>(request);
+        return (TResponse)await wrapper.ExecuteAndDeserialise();
+    }
+
+}

@@ -1,0 +1,100 @@
+﻿@inject ApiCredentialService CredentialService;
+@using ExifParser.Images
+@using ExifParser.Services
+<SectionContent SectionName="page-title">Image Details</SectionContent>
+
+<div class="modal @IsShowing image-modal-container" tabindex="-1" role="dialog" style="display: @ModalDisplay align-content: center; @Background">
+    <div id="modalBody" class="image-modal-content" style="opacity: @Opacity">
+        <div id="modalTitle" class="image-modal-title">
+            <h1 style="padding-top: 10px">Modal Title</h1>
+        </div>
+        <div id="modalBody" class="image-modal-image-container">
+            @if(Image is not null) 
+            {
+                <img style="max-height: 100%; max-width: 100%; object-fit: contain;" src="@Image.Url" />
+            }
+            else {
+                <h1>No Image Data Found</h1>
+            }
+        </div>
+        <div id="modalDetails" class="image-modal-image-details">
+            @if(Image is not null){
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">This is a test item</h5>
+                        </div>
+                        <p class="mb-1">More content goes here</p>
+                        <small>smallprint here</small>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">This is a test item</h5>
+                        </div>
+                        <p class="mb-1">More content goes here</p>
+                        <small>smallprint here</small>
+                    </a>
+                </div>
+
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">This is a test item</h5>
+                        </div>
+                        <p class="mb-1">More content goes here</p>
+                        <small>smallprint here</small>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">This is a test item</h5>
+                        </div>
+                        <p class="mb-1">More content goes here</p>
+                        <small>smallprint here</small>
+                    </a>
+                </div>
+            }
+        </div>
+        <div id="modalFooter" class="image-modal-footer">
+            <button type="button" class="btn btn-secondary image-modal-button-negative" style="display:grid; place-items:center;" data-dismiss="modal" @onclick="Hide">Close</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IImage? Image;
+    private Image? ImageDetails { get; set; }
+    private List<ApiCredentials>? _credentials;
+    public Guid Guid = Guid.NewGuid();
+    public string ModalDisplay = "none;";
+    public string IsShowing = "";
+    public string Opacity = "0";
+    public string Background = "";
+    public bool ShowBackdrop = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _credentials = await CredentialService.LoadApiCredentialsFromJsonAsync();
+    }
+
+    public async Task Show(IImage image)
+    {
+        Image = image;
+        ImageDetails = await image.RequestImageDetails(CredentialService);
+        ModalDisplay = "grid;";
+        IsShowing = "Show";
+        Opacity = "1";
+        Background = "background: #00000060;";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        ModalDisplay = "none;";
+        IsShowing = "";
+        Opacity = "0";
+        Background = "";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+}

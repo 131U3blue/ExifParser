@@ -1,0 +1,30 @@
+﻿body {
+}
+
+.search-bar-container {
+    width: 100%;
+    display: grid;
+    margin: 20px;
+    grid-template-columns: 16fr 1fr 15fr 16fr;
+}
+
+span.search-icon {
+    padding: 10px; 
+    border-color: #ffffffaa; 
+    border-radius: 5px 0px 0px 5px; 
+    border-style: solid; 
+    border-width: 2px 0px 2px 2px; 
+    grid-column: 2; 
+    background: #00000030
+}
+
+::deep .search-bar-textbox {
+    grid-column: 3;
+    background-color: #ffffff30;
+    color: antiquewhite;
+    border-color: #ffffffaa;
+    border-radius: 0px 5px 5px 0px;
+    border-style: solid;
+    border-width: 2px 2px 2px 0px;
+    padding: 10px;
+}
